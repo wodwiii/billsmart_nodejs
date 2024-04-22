@@ -8,7 +8,7 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ accountNumber });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid account number' });
+      return res.status(401).json({ message: 'Invalid account number: ' + accountNumber });
     }
 
     if (password !== user.password) {
