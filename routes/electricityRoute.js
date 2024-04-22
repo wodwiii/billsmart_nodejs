@@ -19,17 +19,19 @@ router.post('/electricity', async (req, res) => {
     const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 14);
 
     let electricityBill = await ElectricityBill.findOne({
-      owner: user._id,
+      owner: user.accountNumber,
       periodStart,
       periodEnd,
     });
 
     if (!electricityBill) {
       electricityBill = new ElectricityBill({
-        owner: user._id,
+        owner: user.accountNumber,
         periodStart,
         periodEnd,
       });
+      user.electricityBills.push(electricityBill._id);
+      await user.save();
     }
 
     electricityBill.readings.push({
@@ -38,8 +40,7 @@ router.post('/electricity', async (req, res) => {
     });
 
     await electricityBill.save();
-    user.electricityBills.push(electricityBill._id);
-    await user.save();
+
     res.status(201).json({ message: 'Electricity reading saved successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' });

@@ -19,29 +19,27 @@ router.post('/water', async (req, res) => {
     const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 14);
 
     let waterBill = await WaterBill.findOne({
-      owner: user._id,
+      owner: user.accountNumber,
       periodStart,
       periodEnd,
     });
 
     if (!waterBill) {
       waterBill = new WaterBill({
-        owner: user._id,
+        owner: user.accountNumber,
         periodStart,
         periodEnd,
       });
+      user.waterBills.push(waterBill._id);
+      await user.save();
+  
     }
 
     waterBill.readings.push({
       value: waterReading,
       timestamp: new Date(),
     });
-
     await waterBill.save();
-
-    user.waterBills.push(waterBill._id);
-    await user.save();
-
     res.status(201).json({ message: 'Water reading saved successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' });

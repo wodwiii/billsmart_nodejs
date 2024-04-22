@@ -4,8 +4,8 @@ const WaterBill = require('../models/waterBill');
 
 router.get('/water/aggregated', async (req, res) => {
   try {
-    const { type } = req.query;
-    let start, end;
+    const { type, accountNumber } = req.query;
+    let start, end, matchCriteria = {};
 
     switch (type) {
       case 'day':
@@ -28,9 +28,14 @@ router.get('/water/aggregated', async (req, res) => {
         return res.status(400).json({ message: 'Invalid type parameter' });
     }
 
+    if (accountNumber) {
+      matchCriteria['owner'] = accountNumber; // Filter by account number
+    }
+
     const result = await WaterBill.aggregate([
       {
         $match: {
+          ...matchCriteria,
           'readings.timestamp': {
             $gte: start,
             $lte: end
@@ -42,7 +47,7 @@ router.get('/water/aggregated', async (req, res) => {
       },
       {
         $group: {
-          _id: null,
+          _id: '$owner',
           totalWaterBill: { $sum: '$readings.value' }
         }
       }

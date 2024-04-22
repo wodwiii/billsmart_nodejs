@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const apiRoutes = require('./routes/api');
+const login = require('./routes/loginRoute');
+
 require('dotenv').config(); 
 
 const app = express();
@@ -16,7 +18,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
   
 app.use(apiRoutes);
-
+app.use(login);
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

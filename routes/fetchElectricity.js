@@ -5,8 +5,8 @@ const ElectricityBill = require('../models/electricityBill');
 // Aggregate Electricity Bills
 router.get('/electricity/aggregated', async (req, res) => {
   try {
-    const { type } = req.query;
-    let start, end;
+    const { type, accountNumber } = req.query;
+    let start, end, matchCriteria = {};
 
     switch (type) {
       case 'day':
@@ -28,10 +28,14 @@ router.get('/electricity/aggregated', async (req, res) => {
       default:
         return res.status(400).json({ message: 'Invalid type parameter' });
     }
+    if (accountNumber) {
+      matchCriteria['owner'] = accountNumber; // Filter by account number
+    }
 
     const result = await ElectricityBill.aggregate([
       {
         $match: {
+          ...matchCriteria,
           'readings.timestamp': {
             $gte: start,
             $lte: end
@@ -43,7 +47,7 @@ router.get('/electricity/aggregated', async (req, res) => {
       },
       {
         $group: {
-          _id: null,
+          _id: '$owner',
           totalElectricityBill: { $sum: '$readings.value' }
         }
       }
