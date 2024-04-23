@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const ElectricityBill = require('../models/electricityBill');
+const {electricityRate} = require('../rates');
 
-// Aggregate Electricity Bills
+
 router.get('/electricity/aggregated', async (req, res) => {
   try {
     const { type, accountNumber } = req.query;
     let start, end, matchCriteria = {};
+    const today = new Date();
 
     switch (type) {
       case 'day':
@@ -16,20 +18,22 @@ router.get('/electricity/aggregated', async (req, res) => {
         end.setHours(23, 59, 59, 999);
         break;
       case 'week':
-        const today = new Date();
         start = new Date(today.setDate(today.getDate() - today.getDay()));
         end = new Date(today.setDate(today.getDate() - today.getDay() + 6));
         break;
       case 'month':
-        start = new Date();
-        start.setDate(15);
-        end = new Date();
+        start = today.getDate() > 14
+        ? new Date(today.getFullYear(), today.getMonth(), 15)
+        : new Date(today.getFullYear(), today.getMonth() - 1, 15);
+        end = today.getDate() > 14
+          ? new Date(today.getFullYear(), today.getMonth() + 1, 14)
+          : new Date(today.getFullYear(), today.getMonth(), 14);
         break;
       default:
         return res.status(400).json({ message: 'Invalid type parameter' });
     }
     if (accountNumber) {
-      matchCriteria['owner'] = accountNumber; // Filter by account number
+      matchCriteria['owner'] = accountNumber;
     }
 
     const result = await ElectricityBill.aggregate([
@@ -46,6 +50,14 @@ router.get('/electricity/aggregated', async (req, res) => {
         $unwind: '$readings'
       },
       {
+        $match: {
+          'readings.timestamp': {
+            $gte: start,
+            $lte: end
+          }
+        }
+      },
+      {
         $group: {
           _id: '$owner',
           totalElectricityBill: { $sum: '$readings.value' }
@@ -56,8 +68,10 @@ router.get('/electricity/aggregated', async (req, res) => {
     if (result.length === 0) {
       return res.status(404).json({ message: 'No data found' });
     }
+    const totalElectricityBill = result[0].totalElectricityBill;
+    const totalPhp = result[0].totalElectricityBill * electricityRate;
 
-    res.json({ totalElectricityBill: result[0].totalElectricityBill });
+    res.json({ totalElectricityBill:  totalElectricityBill.toFixed(2), totalPhp: totalPhp.toFixed(2)});
 
   } catch (error) {
     console.error(error);

@@ -15,8 +15,12 @@ router.post('/water', async (req, res) => {
     }
 
     const today = new Date();
-    const periodStart = new Date(today.getFullYear(), today.getMonth(), 15);
-    const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 14);
+    const periodStart = today.getDate() > 14
+      ? new Date(today.getFullYear(), today.getMonth(), 15)
+      : new Date(today.getFullYear(), today.getMonth()-1, 15);
+    const periodEnd = today.getDate() > 14
+      ? new Date(today.getFullYear(), today.getMonth()+1, 14)
+      : new Date(today.getFullYear(), today.getMonth(), 14);
 
     let waterBill = await WaterBill.findOne({
       owner: user.accountNumber,
@@ -32,7 +36,6 @@ router.post('/water', async (req, res) => {
       });
       user.waterBills.push(waterBill._id);
       await user.save();
-  
     }
 
     waterBill.readings.push({

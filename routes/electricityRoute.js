@@ -15,8 +15,12 @@ router.post('/electricity', async (req, res) => {
     }
 
     const today = new Date();
-    const periodStart = new Date(today.getFullYear(), today.getMonth(), 15);
-    const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 14);
+    const periodStart = today.getDate() > 14
+      ? new Date(today.getFullYear(), today.getMonth(), 15)
+      : new Date(today.getFullYear(), today.getMonth()-1, 15);
+    const periodEnd = today.getDate() > 14
+      ? new Date(today.getFullYear(), today.getMonth()+1, 14)
+      : new Date(today.getFullYear(), today.getMonth(), 14);
 
     let electricityBill = await ElectricityBill.findOne({
       owner: user.accountNumber,
